@@ -7,8 +7,7 @@
 int counter;
 
 void *worker(void *arg) {
-  printf("oi da thread %d\n", counter);
-  counter++;
+  printf("oi da thread %ld\n", (long)arg);
   return NULL;
 }
 
@@ -28,7 +27,7 @@ int main(int argc, char *argv[]) {
 
   pthread_t tid[n];
   for (int i = 0; i < n; i++) {
-    int rc = pthread_create(&tid[i], NULL, worker, NULL);
+    int rc = pthread_create(&tid[i], NULL, worker, (void *)(long)i);
     if (rc != 0) {
       fprintf(stderr, "pthread_create falhou %d\n", rc);
       return 1;
