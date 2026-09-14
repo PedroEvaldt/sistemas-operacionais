@@ -1,6 +1,8 @@
+#include <bits/time.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define HIST_SIZE 10
 
@@ -88,51 +90,26 @@ int main(int argc, char *argv[]) {
 
   int tam = N / T;
 
+  struct timespec t0, t1;
+
   pthread_t t[T];
   t_args args[T];
 
-  switch (modo) {
-  case 0:
-    for (int i = 0; i < T; i++) {
-      args[i] = (t_args){.inicio = i * tam,
-                         .fim = (i == T - 1) ? N : (i + 1) * tam,
-                         .vetor = vetor};
-      if (pthread_create(&t[i], NULL, errada, &args[i]) != 0) {
-        perror("pthread_create");
-        return (1);
-      };
-    }
-    break;
-  case 1:
-    for (int i = 0; i < T; i++) {
-
-      args[i] = (t_args){.inicio = i * tam,
-                         .fim = (i == T - 1) ? N : (i + 1) * tam,
-                         .vetor = vetor};
-      if (pthread_create(&t[i], NULL, grosso, &args[i]) != 0) {
-        perror("pthread_create");
-        return (1);
-      };
-    }
-    break;
-  case 2:
-    for (int i = 0; i < T; i++) {
-
-      args[i] = (t_args){.inicio = i * tam,
-                         .fim = (i == T - 1) ? N : (i + 1) * tam,
-                         .vetor = vetor};
-      if (pthread_create(&t[i], NULL, local, &args[i]) != 0) {
-        perror("pthread_create");
-        return (1);
-      };
-    }
-    break;
-  default:
-    break;
+  clock_gettime(CLOCK_MONOTONIC, &t0);
+  void *(*func)(void *) = (modo == 0) ? errada : (modo == 1) ? grosso : local;
+  for (int i = 0; i < T; i++) {
+    args[i] = (t_args){.inicio = i * tam,
+                       .fim = (i == T - 1) ? N : (i + 1) * tam,
+                       .vetor = vetor};
+    if (pthread_create(&t[i], NULL, func, &args[i]) != 0) {
+      perror("pthread_create");
+      return (1);
+    };
   }
   for (int i = 0; i < T; i++) {
     pthread_join(t[i], NULL);
   }
+  clock_gettime(CLOCK_MONOTONIC, &t1);
 
   long obtido = 0;
   for (int i = 0; i < HIST_SIZE; i++) {
@@ -140,6 +117,8 @@ int main(int argc, char *argv[]) {
   }
   printf("%s --- esperado: %d; obtido: %ld\n",
          (N == obtido) ? "SUCESSO!" : "FRACASSO", N, obtido);
+  double seg = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+  printf("tempo %.4f\n", seg);
   free(vetor);
   return 0;
 }
